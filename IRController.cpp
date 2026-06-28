@@ -12,7 +12,7 @@ IRController::IRController(int pin) {
 }
 
 void IRController::begin() {
-  IrReceiver.begin(receivePin, ENABLE_LED_FEEDBACK);
+  IrReceiver.begin(receivePin, DISABLE_LED_FEEDBACK);
 }
 
 Command IRController::read() {
