@@ -2,7 +2,7 @@
 
 > A modular, layered robotics operating system for Arduino — designed to grow from a simple tracked robot into a full autonomous platform.
 
-![Version](https://img.shields.io/badge/version-0.2-blue)
+![Version](https://img.shields.io/badge/version-0.3-blue)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20UNO-teal)
 ![Status](https://img.shields.io/badge/status-tested%20%26%20working-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -24,6 +24,7 @@
     - [`IRController`](#ircontroller)
     - [`InputManager`](#inputmanager)
     - [`MotionManager`](#motionmanager)
+    - [`DisplayManager`](#displaymanager)
   - [Hardware Setup](#hardware-setup)
     - [Components](#components)
     - [Wiring](#wiring)
@@ -43,7 +44,7 @@ SabreBotOS is a layered robotics framework built around a single idea: **separat
 
 Instead of one monolithic sketch, every responsibility lives in its own module. Input sources, motion logic, and hardware abstraction are decoupled from the start — so adding WiFi, AI, or a camera never breaks what already works.
 
-**Current capability (v0.2):**
+**Current capability (v0.3):**
 
 ```
 Buttons / IR Remote
@@ -52,7 +53,7 @@ Buttons / IR Remote
         ↓
   MotionManager
         ↓
-  Serial Output
+  Serial Output + LCD Display
 ```
 
 **Planned future layers:** motor drivers · LCD · WiFi · ESP32 · Raspberry Pi · local AI · cloud AI · cameras · voice · autonomous navigation · robot arm · multi-robot coordination
@@ -75,14 +76,15 @@ Buttons / IR Remote
    └─────────────┬─┘   └─────┬────────┘
                  └─────┬─────┘
                   Command
-                       │
-          ┌────────────▼───────────┐
-          │     MotionManager      │
-          └────────────┬───────────┘
-                       │
-          ┌────────────▼───────────┐
-          │    Motor Driver (TBD)  │
-          └────────────────────────┘
+                    │     │
+          ┌─────────▼──┐  └──────────────────┐
+          │MotionManager│             ┌───────▼────────┐
+          └─────────────┘             │ DisplayManager │
+                 │                    │  (LCD 16×2)    │
+          ┌──────▼──────┐             └────────────────┘
+          │Motor Driver │
+          │   (TBD)     │
+          └─────────────┘
 ```
 
 `MotionManager` never knows whether a command came from a button, IR remote, WiFi, joystick, or AI — they all speak the same `Command` language.
@@ -105,8 +107,8 @@ ButtonController      IRController
           (first non-CMD_NONE wins)
                 │
                 ▼  (only fires on state change)
-          MotionManager
-                │
+          MotionManager ──────────── DisplayManager
+                │                    (LCD 16×2)
                 ▼
        Serial.println(state)   ← today
        Motor PWM               ← v0.4
@@ -129,6 +131,8 @@ SabreBotOS/
 ├── InputManager.cpp      ← Aggregates up to 5 controllers
 ├── MotionManager.h
 ├── MotionManager.cpp     ← Executes and tracks robot state
+├── DisplayManager.h
+├── DisplayManager.cpp    ← LCD 16×2 status display
 └── README.md
 ```
 
@@ -205,19 +209,45 @@ Command cmd = inputManager.read();
 
 ### `MotionManager`
 
-Tracks the robot's current motion state and executes commands. In v0.2, execution means printing the state to the Serial monitor. Motor PWM output will be added in v0.4.
+Tracks the robot's current motion state and executes commands. In v0.3, execution means printing the state to the Serial monitor. Motor PWM output will be added in v0.4.
 
 **Serial output example:**
 
 ```
-SabreBotOS v0.2 Ready
-Controls: Buttons + IR Remote
+SabreBotOS v0.3 Ready
+Controls: Buttons + IR Remote + LCD
 STATE: FORWARD
 STATE: TURN LEFT
 STATE: STOPPED
 ```
 
 The main loop deduplicates commands — `MotionManager` only fires when the state actually changes.
+
+---
+
+### `DisplayManager`
+
+Drives a 16×2 LCD display using the LiquidCrystal library. Shows the robot name on row 0 and the current motion state on row 1. Updates only when the state changes to avoid flicker.
+
+| LCD Pin | Arduino Pin |
+| ------- | ----------- |
+| RS      | D7          |
+| E       | D8          |
+| D4      | D9          |
+| D5      | D10         |
+| D6      | D12         |
+| D7      | D13         |
+
+**Display output example:**
+
+```
+┌────────────────┐
+│SabreBotOS      │
+│FORWARD         │
+└────────────────┘
+```
+
+State labels: `FORWARD`, `BACKWARD`, `TURN LEFT`, `TURN RIGHT`, `STOPPED`, `IDLE`.
 
 ---
 
@@ -229,6 +259,7 @@ The main loop deduplicates commands — `MotionManager` only fires when the stat
 - 5× momentary push buttons
 - IR receiver module (e.g. VS1838B)
 - IR remote control
+- 16×2 LCD display (HD44780-compatible)
 
 ### Wiring
 
@@ -250,19 +281,34 @@ The main loop deduplicates commands — `MotionManager` only fires when the stat
 | VCC           | 5V          |
 | GND           | GND         |
 
+**LCD Display (16×2):**
+
+| LCD Pin | Arduino Pin |
+| ------- | ----------- |
+| RS      | D7          |
+| E       | D8          |
+| D4      | D9          |
+| D5      | D10         |
+| D6      | D12         |
+| D7      | D13         |
+| VCC     | 5V          |
+| GND     | GND         |
+| V0      | 10kΩ pot    |
+
 ---
 
 ## Getting Started
 
-1. Open `SabreBotOS.ino` in the Arduino IDE.
-2. Wire the hardware as described above.
-3. Upload to an Arduino UNO.
-4. Open the Serial Monitor at **115200 baud**.
-5. Press a button or point your IR remote — you should see state changes printed.
+1. Install the **LiquidCrystal** library (included with Arduino IDE).
+2. Open `SabreBotOS.ino` in the Arduino IDE.
+3. Wire the hardware as described above.
+4. Upload to an Arduino UNO.
+5. Open the Serial Monitor at **115200 baud**.
+6. Press a button or point your IR remote — state changes appear on the Serial Monitor and on the LCD.
 
 ```
-SabreBotOS v0.2 Ready
-Controls: Buttons + IR Remote
+SabreBotOS v0.3 Ready
+Controls: Buttons + IR Remote + LCD
 STATE: FORWARD
 STATE: TURN RIGHT
 STATE: STOPPED
@@ -299,7 +345,7 @@ No existing module needs to be modified.
 | ------- | ----------------------------------- | ------- |
 | v0.1    | Button controller + Serial monitor  | ✅ Done |
 | v0.2    | IR controller + InputManager        | ✅ Done |
-| v0.3    | LCD status display                  | Planned |
+| v0.3    | LCD status display                  | ✅ Done |
 | v0.4    | BTS7960 motor driver (PWM output)   | Planned |
 | v0.5    | Encoders + PID speed control        | Planned |
 | v0.6    | ESP8266 WiFi control                | Planned |
