@@ -2,6 +2,15 @@
 
 > A modular, layered robotics operating system for Arduino — designed to grow from a simple tracked robot into a full autonomous platform.
 
+> **Repository status:** working Arduino/robotics prototype and supporting engineering reference. It is not an autonomous platform, safety-certified controller, or production robot operating system.
+
+## Current-state documentation
+
+- [Overview and scope](docs/README.md)
+- [Prototype charter and safety boundaries](docs/project-charter.md)
+- [Architecture and hardware boundaries](docs/architecture.md)
+- [Delivery and quality handoff](docs/delivery-and-quality.md)
+
 ![Version](https://img.shields.io/badge/version-0.3-blue)
 ![Platform](https://img.shields.io/badge/platform-Arduino%20UNO-teal)
 ![Status](https://img.shields.io/badge/status-tested%20%26%20working-brightgreen)
